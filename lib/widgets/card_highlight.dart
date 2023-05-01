@@ -1,28 +1,37 @@
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:flutter/services.dart';
 
-class CardHighlight extends StatefulWidget {
-  const CardHighlight({
-    Key? key,
-    this.backgroundColor,
-    required this.child,
-    required this.codeSnippet,
-  }) : super(key: key);
-
+class FluentCard extends StatelessWidget {
   final Widget child;
-  final String codeSnippet;
-
-  final Color? backgroundColor;
+  const FluentCard({Key? key, required this.child}) : super(key: key);
 
   @override
-  State<CardHighlight> createState() => _CardHighlightState();
+  Widget build(BuildContext context) {
+    return Card(
+      child: SizedBox(
+        width: double.infinity,
+        child: child,
+      ),
+    );
+  }
 }
 
-class _CardHighlightState extends State<CardHighlight>
-    with AutomaticKeepAliveClientMixin<CardHighlight> {
-  bool isOpen = false;
-  bool isCopying = false;
+class FluentExpandingCard extends StatefulWidget {
+  final Widget leading;
+  final Widget title;
+  final Widget content;
+  const FluentExpandingCard({
+    super.key,
+    required this.leading,
+    required this.title,
+    required this.content,
+  });
 
+  @override
+  State<FluentExpandingCard> createState() => _FluentExpandingCardState();
+}
+
+class _FluentExpandingCardState extends State<FluentExpandingCard>
+    with AutomaticKeepAliveClientMixin<FluentExpandingCard> {
   final GlobalKey expanderKey = GlobalKey<ExpanderState>(
     debugLabel: 'Card Expander Key',
   );
@@ -30,69 +39,13 @@ class _CardHighlightState extends State<CardHighlight>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final theme = FluentTheme.of(context);
 
     return Column(children: [
-      Card(
-        backgroundColor: widget.backgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(4.0)),
-        child: SizedBox(
-          width: double.infinity,
-          child: Align(
-            alignment: AlignmentDirectional.topStart,
-            child: widget.child,
-          ),
-        ),
-      ),
       Expander(
         key: expanderKey,
-        headerShape: (open) => const RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
-        ),
-        onStateChanged: (state) {
-          // this is done because [onStateChanges] is called while the [Expander]
-          // is updating. By using this, we schedule the rebuilt of this widget
-          // to the next frame
-          WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-            if (mounted) setState(() => isOpen = state);
-          });
-        },
-        trailing: isOpen
-            ? Container(
-                height: 31,
-                constraints: const BoxConstraints(minWidth: 75),
-                child: Button(
-                  style: ButtonStyle(
-                    backgroundColor: isCopying
-                        ? ButtonState.all(
-                            theme.accentColor.defaultBrushFor(theme.brightness),
-                          )
-                        : null,
-                  ),
-                  child: isCopying
-                      ? Icon(
-                          FluentIcons.check_mark,
-                          color: theme.resources.textOnAccentFillColorPrimary,
-                          size: 18,
-                        )
-                      : Row(children: const [
-                          Icon(FluentIcons.copy),
-                          SizedBox(width: 6.0),
-                          Text('Copy')
-                        ]),
-                  onPressed: () {
-                    Clipboard.setData(ClipboardData(text: widget.codeSnippet));
-                    setState(() => isCopying = true);
-                    Future.delayed(const Duration(milliseconds: 1500), () {
-                      isCopying = false;
-                      if (mounted) setState(() {});
-                    });
-                  },
-                ),
-              )
-            : null,
-        header: const Text('Source code'),
-        content: Text(widget.codeSnippet),
+        leading: widget.leading,
+        header: widget.title,
+        content: widget.content,
       ),
     ]);
   }
@@ -106,10 +59,8 @@ const fluentHighlightTheme = {
     backgroundColor: Color(0x00ffffff),
     color: Color(0xffdddddd),
   ),
-  'keyword': TextStyle(
-      color: Color.fromARGB(255, 255, 255, 255), fontWeight: FontWeight.bold),
-  'selector-tag':
-      TextStyle(color: Color(0xffffffff), fontWeight: FontWeight.bold),
+  'keyword': TextStyle(color: Color.fromARGB(255, 255, 255, 255), fontWeight: FontWeight.bold),
+  'selector-tag': TextStyle(color: Color(0xffffffff), fontWeight: FontWeight.bold),
   'literal': TextStyle(color: Color(0xffffffff), fontWeight: FontWeight.bold),
   'section': TextStyle(color: Color(0xffffffff), fontWeight: FontWeight.bold),
   'link': TextStyle(color: Color(0xffffffff)),

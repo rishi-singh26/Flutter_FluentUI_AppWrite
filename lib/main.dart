@@ -4,15 +4,22 @@ import 'package:flutter_acrylic/flutter_acrylic.dart' as flutter_acrylic;
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:system_theme/system_theme.dart';
+import 'package:win_ui/core/providers/auth_state.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:appwrite/appwrite.dart';
 
-import 'theme.dart';
+import 'core/providers/theme.dart';
 import 'package:win_ui/screens/home.dart';
 import 'package:win_ui/screens/settings.dart';
+import 'package:win_ui/screens/profile.dart';
+import 'package:win_ui/screens/your_info.dart';
+import 'package:win_ui/screens/sessions.dart';
 import 'package:win_ui/screens/students/main.dart';
+import 'package:win_ui/authentication/auth_screen.dart';
+import 'package:win_ui/widgets/window_buttons.dart';
+import 'package:win_ui/core/constants/route_names.dart';
+import 'package:win_ui/widgets/pane_profile_card.dart';
 
-const String appTitle = 'Win UI for Flutter';
+const String appTitle = 'Accountancy';
 
 /// Checks if the current environment is a desktop environment.
 bool get isDesktop {
@@ -55,17 +62,64 @@ void main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
 
-  // private navigators
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
 
+class _MyAppState extends State<MyApp> {
+  // private navigators
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => AppTheme(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => AppTheme()),
+        ChangeNotifierProvider(create: (context) => AuthState(), lazy: false),
+      ],
       builder: (context, _) {
         final appTheme = context.watch<AppTheme>();
+        final authState = context.watch<AuthState>();
+        if (authState.isLoggedIn) {
+          return FluentApp.router(
+            title: appTitle,
+            themeMode: appTheme.mode,
+            debugShowCheckedModeBanner: false,
+            color: appTheme.color,
+            darkTheme: FluentThemeData(
+              brightness: Brightness.dark,
+              accentColor: appTheme.color,
+              visualDensity: VisualDensity.standard,
+              focusTheme: FocusThemeData(
+                glowFactor: is10footScreen() ? 2.0 : 0.0,
+              ),
+            ),
+            theme: FluentThemeData(
+              accentColor: appTheme.color,
+              visualDensity: VisualDensity.standard,
+              focusTheme: FocusThemeData(
+                glowFactor: is10footScreen() ? 2.0 : 0.0,
+              ),
+            ),
+            locale: appTheme.locale,
+            builder: (context, child) {
+              return Directionality(
+                textDirection: appTheme.textDirection,
+                child: NavigationPaneTheme(
+                  data: NavigationPaneThemeData(
+                    backgroundColor:
+                        appTheme.windowEffect != flutter_acrylic.WindowEffect.disabled ? Colors.transparent : null,
+                  ),
+                  child: child!,
+                ),
+              );
+            },
+            routeInformationParser: router.routeInformationParser,
+            routerDelegate: router.routerDelegate,
+            routeInformationProvider: router.routeInformationProvider,
+          );
+        }
         return FluentApp.router(
           title: appTitle,
           themeMode: appTheme.mode,
@@ -99,17 +153,17 @@ class MyApp extends StatelessWidget {
               ),
             );
           },
-          routeInformationParser: router.routeInformationParser,
-          routerDelegate: router.routerDelegate,
-          routeInformationProvider: router.routeInformationProvider,
+          routeInformationParser: authenticationRouter.routeInformationParser,
+          routerDelegate: authenticationRouter.routerDelegate,
+          routeInformationProvider: authenticationRouter.routeInformationProvider,
         );
       },
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  MyHomePage({
+class MyLandingPage extends StatefulWidget {
+  const MyLandingPage({
     Key? key,
     required this.child,
     required this.shellContext,
@@ -120,19 +174,11 @@ class MyHomePage extends StatefulWidget {
   final BuildContext? shellContext;
   final GoRouterState state;
 
-  final Client client =
-      Client().setEndpoint('http://localhost/v1').setProject('6449dc5ae82fd2fc8586').setSelfSigned(status: true);
-  // For self signed certificates, only use for development
-
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<MyLandingPage> createState() => _MyLandingPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> with WindowListener {
-  bool value = false;
-
-  // int index = 0;
-
+class _MyLandingPageState extends State<MyLandingPage> with WindowListener {
   final viewKey = GlobalKey(debugLabel: 'Navigation View Key');
   final searchKey = GlobalKey(debugLabel: 'Search Bar Key');
   final searchFocusNode = FocusNode();
@@ -140,44 +186,40 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
 
   final List<NavigationPaneItem> originalItems = [
     PaneItem(
-      key: const Key('/'),
+      key: Key(RouteNames.withPrefix.home),
       icon: const Icon(FluentIcons.home),
       title: const Text('Home'),
       body: const SizedBox.shrink(),
       onTap: () {
-        if (router.location != '/') router.pushNamed('home');
+        if (router.location != RouteNames.withPrefix.home) router.pushNamed('home');
       },
     ),
     PaneItem(
-      key: const Key('/students'),
+      key: Key(RouteNames.withPrefix.students),
       icon: const Icon(FluentIcons.people),
       title: const Text('Students'),
       body: const SizedBox.shrink(),
       onTap: () {
-        if (router.location != '/students') router.pushNamed('students');
+        if (router.location != RouteNames.withPrefix.students) {
+          router.pushNamed(RouteNames.withoutPrefix.students);
+        }
       },
     ),
   ];
+
   final List<NavigationPaneItem> footerItems = [
     PaneItemSeparator(),
     PaneItem(
-      key: const Key('/settings'),
+      key: Key(RouteNames.withPrefix.settings),
       icon: const Icon(FluentIcons.settings),
       title: const Text('Settings'),
       body: const SizedBox.shrink(),
       onTap: () {
-        if (router.location != '/settings') {
-          router.pushNamed('settings');
+        if (router.location != RouteNames.withPrefix.settings) {
+          router.pushNamed(RouteNames.withoutPrefix.settings);
         }
       },
     ),
-    _LinkPaneItemAction(
-      icon: const Icon(FluentIcons.open_source),
-      title: const Text('Source code'),
-      link: 'https://github.com/bdlukaa/fluent_ui',
-      body: const SizedBox.shrink(),
-    ),
-    // TODO: mobile widgets, Scrollbar, BottomNavigationBar, RatingBar
   ];
 
   @override
@@ -220,7 +262,6 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
     final localizations = FluentLocalizations.of(context);
 
     final appTheme = context.watch<AppTheme>();
-    final theme = FluentTheme.of(context);
     if (widget.shellContext != null) {
       if (router.canPop() == false) {
         setState(() {});
@@ -232,7 +273,6 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
         automaticallyImplyLeading: false,
         leading: () {
           final enabled = widget.shellContext != null && router.canPop();
-
           final onPressed = enabled
               ? () {
                   if (router.canPop()) {
@@ -282,23 +322,12 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
             ),
           );
         }(),
-        actions: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-          Padding(
-            padding: const EdgeInsetsDirectional.only(end: 8.0),
-            child: ToggleSwitch(
-              content: const Text('Dark Mode'),
-              checked: FluentTheme.of(context).brightness.isDark,
-              onChanged: (v) {
-                if (v) {
-                  appTheme.mode = ThemeMode.dark;
-                } else {
-                  appTheme.mode = ThemeMode.light;
-                }
-              },
-            ),
-          ),
-          if (!kIsWeb) const WindowButtons(),
-        ]),
+        actions: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: const [
+            if (!kIsWeb) WindowButtons(),
+          ],
+        ),
       ),
       paneBodyBuilder: (item, child) {
         final name = item?.key is ValueKey ? (item!.key as ValueKey).value : null;
@@ -308,30 +337,17 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
         );
       },
       pane: NavigationPane(
-        selected: _calculateSelectedIndex(context),
-        header: SizedBox(
-          height: kOneLineTileHeight,
-          child: ShaderMask(
-            shaderCallback: (rect) {
-              final color = appTheme.color.defaultBrushFor(
-                theme.brightness,
-              );
-              return LinearGradient(
-                colors: [
-                  color,
-                  color,
-                ],
-              ).createShader(rect);
-            },
-            child: const Text('Accountancy'),
-            // child: const FlutterLogo(
-            //   style: FlutterLogoStyle.horizontal,
-            //   size: 80.0,
-            //   textColor: Colors.white,
-            //   duration: Duration.zero,
-            // ),
-          ),
+        size: NavigationPaneSize(
+          openWidth: MediaQuery.of(context).size.width / 5,
+          openMinWidth: 300,
+          openMaxWidth: 300,
         ),
+        selected: _calculateSelectedIndex(context),
+        header: PaneProfileCard(onTap: () {
+          if (router.location != RouteNames.withPrefix.profile) {
+            router.pushNamed(RouteNames.withoutPrefix.profile);
+          }
+        }),
         displayMode: appTheme.displayMode,
         indicator: () {
           switch (appTheme.indicator) {
@@ -410,56 +426,6 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
   }
 }
 
-class WindowButtons extends StatelessWidget {
-  const WindowButtons({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    final FluentThemeData theme = FluentTheme.of(context);
-
-    return SizedBox(
-      width: 138,
-      height: 50,
-      child: WindowCaption(
-        brightness: theme.brightness,
-        backgroundColor: Colors.transparent,
-      ),
-    );
-  }
-}
-
-class _LinkPaneItemAction extends PaneItem {
-  _LinkPaneItemAction({
-    required super.icon,
-    required this.link,
-    required super.body,
-    super.title,
-  });
-
-  final String link;
-
-  @override
-  Widget build(
-    BuildContext context,
-    bool selected,
-    VoidCallback? onPressed, {
-    PaneDisplayMode? displayMode,
-    bool showTextOnTop = true,
-    bool? autofocus,
-    int? itemIndex,
-  }) {
-    return super.build(
-      context,
-      selected,
-      () {},
-      displayMode: displayMode,
-      showTextOnTop: showTextOnTop,
-      itemIndex: itemIndex,
-      autofocus: autofocus,
-    );
-  }
-}
-
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 final router = GoRouter(
@@ -468,7 +434,7 @@ final router = GoRouter(
     ShellRoute(
       navigatorKey: _shellNavigatorKey,
       builder: (context, state, child) {
-        return MyHomePage(
+        return MyLandingPage(
           shellContext: _shellNavigatorKey.currentContext,
           state: state,
           child: child,
@@ -477,21 +443,43 @@ final router = GoRouter(
       routes: [
         /// Home
         GoRoute(
-          path: '/',
+          path: RouteNames.withPrefix.home,
           name: 'home',
           builder: (context, state) => const HomePage(),
         ),
 
+        /// Students
         GoRoute(
-          path: '/students',
-          name: 'students',
+          path: RouteNames.withPrefix.students,
+          name: RouteNames.withoutPrefix.students,
           builder: (context, state) => const StudentsPage(),
+        ),
+
+        /// Profile
+        GoRoute(
+          path: RouteNames.withPrefix.profile,
+          name: RouteNames.withoutPrefix.profile,
+          builder: (context, state) => Profile(),
+        ),
+
+        /// Your Info
+        GoRoute(
+          path: RouteNames.withPrefix.yourInfo,
+          name: RouteNames.withoutPrefix.yourInfo,
+          builder: (context, state) => const YourInfoPage(),
+        ),
+
+        /// Sessions
+        GoRoute(
+          path: RouteNames.withPrefix.sessions,
+          name: RouteNames.withoutPrefix.sessions,
+          builder: (context, state) => const SessionsPage(),
         ),
 
         /// Settings
         GoRoute(
-          path: '/settings',
-          name: 'settings',
+          path: RouteNames.withPrefix.settings,
+          name: RouteNames.withoutPrefix.settings,
           builder: (context, state) => Settings(),
         ),
       ],
