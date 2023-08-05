@@ -38,8 +38,8 @@ class PaneProfileCard extends StatelessWidget {
             Container(
               decoration: BoxDecoration(
                 borderRadius: const BorderRadius.all(Radius.circular(50)),
-                color: theme.disabledColor,
-                border: Border.all(color: theme.checkedColor),
+                color: theme.inactiveColor,
+                border: Border.all(color: theme.selectionColor),
               ),
               height: 100.0,
               width: 100.0,
@@ -53,12 +53,12 @@ class PaneProfileCard extends StatelessWidget {
                 miniSpacer,
                 Text(
                   state.user?.email ?? '',
-                  style: theme.typography.caption?.copyWith(color: theme.borderInputColor),
+                  style: theme.typography.caption?.copyWith(color: theme.activeColor),
                 ),
                 miniSpacer,
                 Text(
                   state.user?.phone ?? '',
-                  style: theme.typography.caption?.copyWith(color: theme.borderInputColor),
+                  style: theme.typography.caption?.copyWith(color: theme.activeColor),
                 ),
               ],
             )
@@ -77,8 +77,8 @@ class PaneProfileCard extends StatelessWidget {
               Container(
                 decoration: BoxDecoration(
                   borderRadius: const BorderRadius.all(Radius.circular(32.5)),
-                  color: theme.disabledColor,
-                  border: Border.all(color: theme.checkedColor),
+                  color: theme.inactiveColor,
+                  border: Border.all(color: theme.selectionColor),
                 ),
                 height: 65.0,
                 width: 65.0,

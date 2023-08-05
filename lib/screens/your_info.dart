@@ -3,7 +3,6 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:win_ui/core/providers/auth_state.dart';
 import 'package:win_ui/core/services/info_bar_service.dart';
-import 'package:win_ui/main.dart' show router;
 import 'package:win_ui/widgets/card_highlight.dart';
 import 'package:win_ui/widgets/page.dart';
 import 'package:win_ui/widgets/pane_profile_card.dart';
